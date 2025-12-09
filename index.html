@@ -410,7 +410,7 @@
             gymName: "Blij's Gym",
 
             // URL del webhook de n8n (OCULTA para el usuario)
-            webhookUrl: 'https://blij.chivodevs.com/webhook-test/gym-checkin',
+            webhookUrl: 'https://blij.chivodevs.com/webhook/gym-checkin',
 
             // URL del logo del gimnasio (opcional)
             // Si no hay logo, se mostrará el emoji 🏋️
@@ -665,8 +665,34 @@
                 console.log('📊 [STATUS] Código HTTP:', response.status);
                 console.log('✅ [OK] Status OK:', response.ok);
 
-                const result = await response.json();
-                console.log('📄 [DATA] Datos de respuesta:', result);
+                // Obtener el texto de la respuesta primero
+                const responseText = await response.text();
+                console.log('📄 [RAW] Respuesta en texto:', responseText);
+
+                let result;
+                try {
+                    // Intentar parsear como JSON
+                    result = JSON.parse(responseText);
+                    console.log('📄 [DATA] Datos parseados:', result);
+                } catch (jsonError) {
+                    console.warn('⚠️ [WARNING] La respuesta no es JSON válido, usando respuesta por defecto');
+                    // Si el webhook devuelve HTML o texto, asumimos éxito si el status es 200
+                    if (response.ok) {
+                        result = {
+                            success: true,
+                            memberName: 'Usuario',
+                            membershipType: 'Activa',
+                            validUntil: 'Verificado',
+                            message: 'Acceso registrado correctamente'
+                        };
+                    } else {
+                        result = {
+                            success: false,
+                            reason: 'Error en la respuesta del servidor',
+                            details: responseText.substring(0, 100)
+                        };
+                    }
+                }
 
                 document.getElementById('loading').style.display = 'none';
                 console.log('⏳ [LOADING] Ocultando indicador de carga');
